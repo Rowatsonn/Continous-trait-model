@@ -263,3 +263,20 @@ Evolving_traits <- function(
   output   
 }
 ```
+      
+      # You want to try to do everything as vectors, without a for loop for agents.
+      # it can get tricky, but it will let the code run much faster
+      # Here's a few lines as examples, I'll put your lines in comments
+      
+      # total_payoff <- 0
+      total_payoffs <- rep(0, N)
+      
+      # Tasks <- sample(c("A", "B"), size = L, replace = T, prob = c(P, 1-P))
+      n_tasks_a <- rbinom(N, L, P)
+      
+      # Success <- ifelse(task == "A", rbinom(1, size = 1, prob = log_to_prob(A_prob)), rbinom(1, size = 1, prob = log_to_prob(B_prob)))
+      success <- rbinom(N, n_tasks_a, log_to_prob(current_population$prob_A)) + rbinom(N, L-n_tasks_a, log_to_prob(current_population$prob_B))
+      
+      # total_payoff <- total_payoff + Success
+      total_payoff <- total_payoff + Success
+      
