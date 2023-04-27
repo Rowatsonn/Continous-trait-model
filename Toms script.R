@@ -175,7 +175,7 @@ for(gen in 1:generations){
   B_bonus <- new_population$prob_B * (new_population$vertical_transmission * vertical_transmission_rate)
   
   # 6) Mutation. (maybe could be optimised somehow, not sure how)
-  mutation_learning <- rep(sample(c(TRUE, FALSE), N, prob = c(mu_learningspeed, 1-mu_learningspeed), replace = T))
+  mutation_learning <- runif(N, 0, 1) < mu_learningspeed
   mutation_allocation <- rep(sample(c(TRUE, FALSE), N, prob = c(mu_allocation, 1-mu_allocation), replace = T)) 
   mutation_generalisation <- rep(sample(c(TRUE, FALSE), N, prob = c(mu_generalisation, 1-mu_generalisation), replace = T))
   mutation_brain <- rep(sample(c(TRUE, FALSE), N, prob = c(mu_brainsize, 1-mu_brainsize), replace = T))
