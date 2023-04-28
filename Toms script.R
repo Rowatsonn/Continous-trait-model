@@ -1,5 +1,4 @@
 rm(list=ls())
-hack <- FALSE
 
 ## Load in required packages ##
 library(tidyverse)
@@ -18,7 +17,7 @@ log_to_prob <- function(logit){
 ## Model function ##
 generations = 200
 N = 500
-P = 0.5
+P = 0.1
 cost = 0.02
 Baseline = -1
 
@@ -80,21 +79,30 @@ for(gen in 1:generations){
   
   
   # 2) Solve tasks
-  if (hack) {
-    Tasks <- rbinom(N, Lifespan, P)
-    total_payoff <- rbinom(N, Tasks, log_to_prob(prob_A)) + rbinom(N, Lifespan-Tasks, log_to_prob(prob_B))
-    prob_A <- prob_A + Tasks*learning_rate*learning_speed*allocation + (Lifespan-Tasks)*(learning_rate * learning_speed * (1-allocation) * generalisation)
-    prob_B <- prob_B + (Lifespan-Tasks)*(learning_rate * learning_speed * (1-allocation)) + Tasks*(learning_rate * learning_speed * (1-allocation)*generalisation)
-  } else {
-    for(agent in 1:N) {
-      Tasks <- rbinom(Lifespan[agent], 1, P)
-      for(task in Tasks){
-        total_payoff[agent] <- rbinom(1, 1, prob = (task*log_to_prob(prob_A[agent])) + (1-task)*log_to_prob(prob_B[agent]))
-        
-        prob_A[agent] <- prob_A[agent] + task*(learning_rate * learning_speed[agent] * allocation[agent]) + (1-task)*(learning_rate * learning_speed[agent] * (1-allocation[agent]) * generalisation[agent])
-        prob_B[agent] <- prob_B[agent] + (1-task)*(learning_rate * learning_speed[agent] * (1-allocation[agent])) + task*(learning_rate * learning_speed[agent] * allocation[agent]*generalisation[agent])
-      }
-    }
+  for(agent in 1:N) {
+    # Assign agent tasks (1=A, 0=B)
+    Tasks <- rbinom(Lifespan[agent], 1, P)
+    
+    # Calculate how much they learn from each task
+    amount_a_learnt <- (
+      Tasks*(learning_rate*learning_speed[agent]*allocation[agent]) +
+      (1-Tasks)*(learning_rate*learning_speed[agent]*(1-allocation[agent])*generalisation[agent])
+    )
+    amount_b_learnt <- (
+      (1-Tasks)*(learning_rate*learning_speed[agent]*(1-allocation[agent])) +
+      Tasks*(learning_rate*learning_speed[agent]*allocation[agent]*generalisation[agent])
+    )
+    
+    # calculate their log-probability of success at each task
+    pA <- prob_A[agent] + c(0, cumsum(amount_a_learnt)[1:(Lifespan[agent]-1)])
+    pB <- prob_B[agent] + c(0, cumsum(amount_b_learnt)[1:(Lifespan[agent]-1)])
+    
+    # calculate successes
+    total_payoff[agent] <- sum(rbinom(Lifespan[agent], 1, log_to_prob((Tasks*pA + (1-Tasks)*pB))))
+    
+    # update final probability
+    prob_A[agent] <- prob_A[agent] + sum(amount_a_learnt)
+    prob_B[agent] <- prob_B[agent] + sum(amount_b_learnt)
   }
   
   # 3) Calculate fitness
